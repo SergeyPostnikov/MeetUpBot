@@ -1,0 +1,109 @@
+import datetime as dt
+import bot_functions as calls
+
+from globals import (
+    bot, telebot, date_now,
+    date_end, payload, markup_recording_time
+)
+from bot_functions import shipping_options
+from telegram_bot_calendar import LSTEP
+from telegram_bot_calendar.base import DAY
+from telegram_bot_calendar.detailed import DetailedTelegramCalendar
+
+calls_map = {
+    'get_faq': calls.get_faq,
+    'faq_question': calls.get_faq_question,
+    'faq_communicate': calls.get_faq_communicate,
+    'faq_start_report': calls.get_faq_start_report,
+    'main_menu': calls.main_menu,
+    'donate': calls.get_donate,
+    'registration_pay': calls.get_registration_pay,
+    'communicate': calls.get_communicate,
+    'ask_question': calls.ask_question
+}
+
+calls_id_map = {}
+
+
+class WMonthTelegramCalendar(DetailedTelegramCalendar):
+    first_step = DAY
+
+
+@bot.message_handler(commands=['start'])
+def command_start(message: telebot.types.Message):
+    calls.start_bot(message)
+
+
+@bot.message_handler()
+def get_text(message):
+    if calls.check_user_in_cache(message):
+        bot.delete_message(message.chat.id, message.message_id)
+
+
+#для календаря при регистрации ивента
+@bot.callback_query_handler(func=WMonthTelegramCalendar.func())
+def cal(c):
+    result, key, step = WMonthTelegramCalendar(locale='ru', min_date=date_now, max_date=date_end).process(c.data)
+    if not result and key:
+        bot.edit_message_text(f"Select {LSTEP[step]}",
+                              c.message.chat.id,
+                              c.message.message_id,
+                              reply_markup=key)
+    elif result:
+        bot.edit_message_text(f"Вы выбрали {result}",
+                              c.message.chat.id,
+                              c.message.message_id, reply_markup=markup_recording_time)
+    user = payload[c.message.chat.id]
+    user['date'] = result
+
+
+@bot.callback_query_handler(func=lambda call: call.data)
+def handle_buttons(call):
+    user = calls.check_user_in_cache(call.message)
+    if not user:
+        return
+    source = user['callback_source']
+    if source and not call.message.id in user['callback_source']:
+        bot.send_message(call.message.chat.id, 'Кнопка не актуальна')
+        return
+    elif (dt.datetime.now()-dt.timedelta(0, 180)) > dt.datetime.fromtimestamp(call.message.date):
+        bot.send_message(call.message.chat.id, 'Срок действия кнопок истек. Нажмите /start и начните заново')
+        return
+    btn_command: str = call.data
+    if user['callback']:
+        bot.send_message(call.message.chat.id,
+                         f'Вы находитесь в режиме '
+                         f'ввода данных другой команды.\n'
+                         f'Сначала завершите ее или отмените')
+        return
+    if 'id' in btn_command:
+        parts = btn_command.split(':')
+        key_func = parts[-1]
+        func_name = parts[0]
+        calls_id_map[func_name](call.message, key_func)
+        return
+    else:
+        calls_map[call.data](call.message, call.data)
+
+
+@bot.shipping_query_handler(func=lambda query: True)
+def shipping(shipping_query):
+    print(shipping_query)
+    bot.answer_shipping_query(shipping_query.id, ok=True, shipping_options=shipping_options,
+                              error_message='Повторите попытку позже!')
+
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def checkout(pre_checkout_query):
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True,
+                                  error_message='Инопланетяне пытались украсть CVV вашей карты, но мы успешно защитили '
+                                                'ваши учетные данные. Попробуй заплатить еще раз через несколько минут, '
+                                                'нам нужен небольшой отдых.')
+
+
+@bot.message_handler(content_types=['successful_payment'])
+def got_payment(message):
+    calls.start_bot(message)
+
+
+bot.polling(none_stop=True, interval=1)
