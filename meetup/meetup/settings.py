@@ -9,12 +9,13 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-import os
-
-from dotenv import load_dotenv
 from pathlib import Path
+from environs import Env
 
-load_dotenv()
+
+env = Env()
+env.read_env()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,15 +23,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = env('SECRET_KEY')
 
-TG_BOT_KEY = os.environ.get('TG_BOT_KEY')
-PAYMENTS_TOKEN = os.environ.get('PAYMENTS_TOKEN')
-TG_ADMIN_ID = os.environ.get('TG_ADMIN_ID')
+TG_BOT_KEY = env('TG_BOT_KEY')
+PAYMENTS_TOKEN = env('PAYMENTS_TOKEN')
+TG_ADMIN_ID = env('TG_ADMIN_ID')
 
-DEBUG = os.environ.get('DEBUG')
+DEBUG = env.bool('DEBUG', True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 
 
 # Application definition
@@ -109,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-RU'
 
 TIME_ZONE = 'UTC'
 
