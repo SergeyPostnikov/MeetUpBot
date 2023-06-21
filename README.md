@@ -14,3 +14,11 @@ PROJECT_ROOT=
 ```bash
 $ cp example.env .env
 ```
+
+переменные присваиваем в settings.py и импортируем в приложение:
+
+```python
+from django.conf import settings
+
+settings.TG_BOT_KEY
+```

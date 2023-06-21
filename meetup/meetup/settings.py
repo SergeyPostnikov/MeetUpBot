@@ -24,6 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
+TG_BOT_KEY = os.environ.get('TG_BOT_KEY')
+PAYMENTS_TOKEN = os.environ.get('PAYMENTS_TOKEN')
+TG_ADMIN_ID = os.environ.get('TG_ADMIN_ID')
+
 DEBUG = os.environ.get('DEBUG')
 
 ALLOWED_HOSTS = []
