@@ -1,5 +1,20 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from datetime import date
+
+
+class MeetupManager(models.Manager):
+    def current(self):
+        return self.filter(date__gte=date.today()).order_by('date').first()
+
+    def speakers(self):
+        return self.current().members.filter(memberstatus__status=MemberStatus.SPEAKER)
+
+    def admins(self):
+        return self.current().members.filter(memberstatus__status=MemberStatus.ADMIN)
+
+    def donated_members(self):
+        return self.current().members.filter(memberstatus__donate_sum__gte=0)
 
 
 class Meetup(models.Model):
@@ -15,6 +30,8 @@ class Meetup(models.Model):
         'Дата',
     )
 
+    objects = MeetupManager()
+
     class Meta:
         verbose_name = 'митап'
         verbose_name_plural = 'митапы'
@@ -28,6 +45,7 @@ class Member(models.Model):
         Meetup,
         through='MemberStatus',
         verbose_name='митап',
+        related_name='members',
     )
     name = models.CharField(
         'Имя',
@@ -43,6 +61,7 @@ class Member(models.Model):
     about = models.TextField(
         'О себе',
         max_length=500,
+        blank=True,
     )
 
     class Meta:
@@ -51,6 +70,9 @@ class Member(models.Model):
 
     def __str__(self):
         return f'{self.name}({self.tg_name})'
+
+    def donate(self, current_meetup):
+        return MemberStatus.objects.get(meetup=current_meetup, member=self.id).donate_sum
 
 
 class MemberStatus(models.Model):
@@ -87,7 +109,6 @@ class MemberStatus(models.Model):
         validators=[MinValueValidator(0)],
         default=0,
     )
-
 
     class Meta:
         verbose_name = 'статус участника'
