@@ -105,13 +105,13 @@ class Meetup(models.Model):
 
     def add_report(self, theme, start, end, speaker=None):
         hours, minutes, = start.split(':')
-        if int(hours) and int(minutes):
+        if int(hours) >= 0 and int(minutes) >= 0:
             start_time = time(hour=int(hours), minute=int(minutes))
         else:
             start_time = time(hour=12, minute=0)
 
         hours, minutes, = end.split(':')
-        if int(hours) and int(minutes):
+        if int(hours) >= 0 and int(minutes) >= 0:
             end_time = time(hour=int(hours), minute=int(minutes))
         else:
             end_time = time(hour=12, minute=0)
@@ -183,6 +183,25 @@ class Member(models.Model):
         return member_status.status
 
 
+class ReportManager(models.Manager):
+    def current_report(self):
+        return self.filter(
+                    is_finished=False,
+                    meetup=Meetup.objects.current()
+                ).order_by('start_time').first()
+
+    def actual_reports(self):
+        return self.filter(
+                    is_finished=False,
+                    meetup=Meetup.objects.current()
+                ).order_by('start_time')
+
+    def current_meetup_reports(self):
+        return self.filter(
+                    meetup=Meetup.objects.current()
+                ).order_by('start_time')
+
+
 class Report(models.Model):
     speaker = models.ForeignKey(
         Member,
@@ -212,6 +231,8 @@ class Report(models.Model):
         default=False,
     )
 
+    objects = ReportManager()
+
     class Meta:
         verbose_name = 'доклад'
         verbose_name_plural = 'доклады'
@@ -223,6 +244,9 @@ class Report(models.Model):
         self.speaker = speaker
         self.save()
         speaker.set_status(self.meetup, MemberStatus.SPEAKER)
+
+    def set_finished(self):
+        self.is_finished = True
 
 
 class Feedback(models.Model):
