@@ -10,6 +10,11 @@ from telegram_bot_calendar import LSTEP
 from telegram_bot_calendar.base import DAY
 from telegram_bot_calendar.detailed import DetailedTelegramCalendar
 
+
+func_speaker = calls.get_speaker
+func_user = calls.get_users
+
+
 calls_map = {
     'get_faq': calls.get_faq,
     'faq_question': calls.get_faq_question,
@@ -19,7 +24,11 @@ calls_map = {
     'donate': calls.get_donate,
     'registration_pay': calls.get_registration_pay,
     'communicate': calls.get_communicate,
-    'ask_question': calls.ask_question
+    'ask_question': calls.ask_question,
+    'ask_question_a_speaker': calls.ask_question_a_speaker,
+    'choice_speaker': calls.get_speaker_buttons,
+    'fill_out_a_form': calls.fill_out_a_form,
+    'write_in_private': calls.write_in_private
 }
 
 calls_id_map = {}
@@ -82,6 +91,14 @@ def handle_buttons(call):
         func_name = parts[0]
         calls_id_map[func_name](call.message, key_func)
         return
+    elif call.data in user['code_speakers']:
+        speacers = user['code_speakers']
+        calls_speaker = calls.get_calls(speacers, func_speaker)
+        calls_speaker[call.data](call.message, call.data)
+    elif call.data in user['code_users']:
+        users = user['code_users']
+        calls_speaker = calls.get_calls(users, func_user)
+        calls_speaker[call.data](call.message, call.data)
     else:
         calls_map[call.data](call.message, call.data)
 

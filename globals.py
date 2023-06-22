@@ -41,7 +41,7 @@ markup_speaker = quick_markup({
 }, row_width=1)
 
 markup_faq = quick_markup({
-    'Как задать вопрос заказчику': {'callback_data': 'faq_question'},
+    'Как задать вопрос докладчику': {'callback_data': 'faq_question'},
     'Как общаться с другими': {'callback_data': 'faq_communicate'},
     'Как начать/закончить доклад': {'callback_data': 'faq_start_report'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
@@ -53,10 +53,32 @@ markup_main_menu = quick_markup({
 
 markup_recording_time = quick_markup({
     'Выбрать время': {'callback_data': 'recording_time'},
-    'Отмена': {'callback_data': 'cancel_step'},
+    'Вернуться в меню': {'callback_data': 'cancel_step'},
 }, row_width=1)
 
 markup_registration = quick_markup({
     'Оплатить': {'callback_data': 'registration_pay', 'pay': True},
-    'Отмена': {'callback_data': 'cancel_step'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+markup_report_true = quick_markup({
+    'Задать вопрос': {'callback_data': 'ask_question_a_speaker'},
+    'Выбор спикера': {'callback_data': 'choice_speaker'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+markup_report_false = quick_markup({
+    'Выбор спикера': {'callback_data': 'choice_speaker'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+
+markup_form = quick_markup({
+    'Заполнить анкету': {'callback_data': 'fill_out_a_form'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+markup_communicate = quick_markup({
+    'Написать в личку': {'callback_data': 'write_in_private'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
