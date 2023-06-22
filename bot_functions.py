@@ -3,7 +3,8 @@ import db_test
 
 from globals import (
 bot, telebot, ACCESS_DUE_TIME, INPUT_DUE_TIME, payload, date_now, date_end, pay_token, markup_main_menu, markup_user,
-markup_speaker, markup_registration, markup_faq, markup_report_true, markup_report_false, markup_form, markup_communicate)
+markup_speaker, markup_registration, markup_faq, markup_report_true, markup_report_false, markup_form, markup_communicate,
+markup_report, markup_question)
 from telebot.util import quick_markup
 from telebot.types import LabeledPrice, ShippingOption
 from telegram_bot_calendar.base import DAY
@@ -55,11 +56,12 @@ def get_markup(buttons, row_width=1):
     return quick_markup(buttons, row_width=row_width)
 
 
+# Start========================================================================================
 def start_bot(message: telebot.types.Message):
     tg_name = message.from_user.username
     msg = bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.username} 😉')
     access_due = dt.datetime.now() + dt.timedelta(0, ACCESS_DUE_TIME)
-    user_group = 1
+    user_group = 2
     payload[message.chat.id] = {
         'callback': None,  # current callback button
         'last_msg': [],  # последние отправленные за один раз сообщения (для подчистки кнопок) -- перспектива
@@ -79,7 +81,7 @@ def start_bot(message: telebot.types.Message):
         'tg_id': message.chat.id,
         'text': None,
         'info': None,
-        'phone': None,
+        'report': False,
         'sheet': 0,
         'step_due': None,  # срок актуальности ожидания ввода данных (используем в callback функциях)
     }
@@ -114,7 +116,9 @@ def check_user_in_cache(msg: telebot.types.Message):
 def main_menu(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     user['sheet'] = 0
-    user_group = 1
+    user_group = 2
+    user['callback_source'] = []
+    bot.clear_step_handler(message)
     if user_group == 1:
         markup = markup_user
     elif user_group == 2:
@@ -149,7 +153,7 @@ def get_faq_start_report(message: telebot.types.Message, call):
 
 
 
-#Communicate========================================================================================
+# Communicate========================================================================================
 def get_communicate(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     if not user['form']:
@@ -317,3 +321,33 @@ def get_registration_pay(message: telebot.types.Message, call):
         photo_size=512,
         is_flexible=False,  # True If you need to set up Shipping Fee
         start_parameter='test-invoice-payload')
+
+
+ # speaker button=========================================================================
+
+def start_report(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    user['report'] = True if not user['report'] else False
+    if user['report']:
+        bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Ваш доклад стартует {dt.datetime.now().time()}\n'
+                               f'По окончанию не забудьте кликнуть "закончить доклад"'
+                              , reply_markup=markup_report)
+    else:
+        bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                              text=f'Ваш доклад закончен {dt.datetime.now().time()}'
+                              , reply_markup=markup_report)
+def get_question(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    users = db_test.questions
+    if user['sheet'] < len(users):
+        name = users[user['sheet']]['name']
+        question = users[user['sheet']]['question']
+        bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                              text=f'{name}\n\n'
+                                   f'{question}'
+                              , reply_markup=markup_question)
+    else:
+        bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                              text=f'Вопросы закончились', reply_markup=markup_main_menu)
+    user['sheet'] += 1

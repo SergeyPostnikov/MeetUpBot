@@ -33,11 +33,11 @@ markup_user = quick_markup({
 }, row_width=1)
 
 markup_speaker = quick_markup({
-    'FAQ': {'callback_data': 'get_faq'},
+    'FAQ 🆘': {'callback_data': 'get_faq'},
     'Общаться с другими': {'callback_data': 'communicate'},
     'Задать вопрос докладчику': {'callback_data': 'ask_question'},
     'Задонатить организатору': {'callback_data': 'donate'},
-    'Начать доклад': {'callback_data': 'start_report'},
+    'Начать/закончить доклад': {'callback_data': 'start_report'},
 }, row_width=1)
 
 markup_faq = quick_markup({
@@ -62,7 +62,7 @@ markup_registration = quick_markup({
 }, row_width=1)
 
 markup_report_true = quick_markup({
-    'Задать вопрос': {'callback_data': 'ask_question_a_speaker'},
+    'Задать вопрос 🤔': {'callback_data': 'ask_question_a_speaker'},
     'Выбор спикера': {'callback_data': 'choice_speaker'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
@@ -74,11 +74,21 @@ markup_report_false = quick_markup({
 
 
 markup_form = quick_markup({
-    'Заполнить анкету': {'callback_data': 'fill_out_a_form'},
+    'Заполнить анкету 📝': {'callback_data': 'fill_out_a_form'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
 
 markup_communicate = quick_markup({
-    'Написать в личку': {'callback_data': 'write_in_private'},
+    'Написать в личку 🖊': {'callback_data': 'write_in_private'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+markup_report = quick_markup({
+    'Прочитать вопросы': {'callback_data': 'get_question'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+markup_question = quick_markup({
+    'Еще вопросы': {'callback_data': 'get_question'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)

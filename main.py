@@ -11,10 +11,6 @@ from telegram_bot_calendar.base import DAY
 from telegram_bot_calendar.detailed import DetailedTelegramCalendar
 
 
-func_speaker = calls.get_speaker
-func_user = calls.get_users
-
-
 calls_map = {
     'get_faq': calls.get_faq,
     'faq_question': calls.get_faq_question,
@@ -28,7 +24,9 @@ calls_map = {
     'ask_question_a_speaker': calls.ask_question_a_speaker,
     'choice_speaker': calls.get_speaker_buttons,
     'fill_out_a_form': calls.fill_out_a_form,
-    'write_in_private': calls.write_in_private
+    'write_in_private': calls.write_in_private,
+    'start_report': calls.start_report,
+    'get_question': calls.get_question
 }
 
 calls_id_map = {}
@@ -93,11 +91,11 @@ def handle_buttons(call):
         return
     elif call.data in user['code_speakers']:
         speacers = user['code_speakers']
-        calls_speaker = calls.get_calls(speacers, func_speaker)
+        calls_speaker = calls.get_calls(speacers, calls.get_speaker)
         calls_speaker[call.data](call.message, call.data)
     elif call.data in user['code_users']:
         users = user['code_users']
-        calls_speaker = calls.get_calls(users, func_user)
+        calls_speaker = calls.get_calls(users, calls.get_users)
         calls_speaker[call.data](call.message, call.data)
     else:
         calls_map[call.data](call.message, call.data)
