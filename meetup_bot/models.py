@@ -175,6 +175,13 @@ class Member(models.Model):
             member_status.status = status
             member_status.save()  # TODO Отправить уведомление о регистрации если надо
 
+    def get_status(self, meetup):
+        (member_status, created) = MemberStatus.objects.get_or_create(meetup=meetup, member=self)
+        if not member_status.status:
+            member_status.status = MemberStatus.USER
+            member_status.save()  # TODO Отправить уведомление о регистрации если надо
+        return member_status.status
+
 
 class Report(models.Model):
     speaker = models.ForeignKey(
@@ -194,9 +201,11 @@ class Report(models.Model):
         max_length=150,
     )
     start_time = models.TimeField(
+        null=True,
         verbose_name='Дата начала',
     )
     end_time = models.TimeField(
+        null=True,
         verbose_name='Дата окончания',
     )
     is_finished = models.BooleanField(
