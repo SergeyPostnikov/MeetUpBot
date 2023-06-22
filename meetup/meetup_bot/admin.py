@@ -58,9 +58,9 @@ class MemberAdmin(admin.ModelAdmin):
         'tg_name',
     ]
     list_display = [
+        'tg_id',
         'name',
         'tg_name',
-        'tg_id',
     ]
     inlines = [
         MemberInline
