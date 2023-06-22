@@ -140,7 +140,11 @@ class Member(models.Model):
     )
     name = models.CharField(
         'Имя',
-        max_length=50,
+        max_length=100,
+    )
+    name = models.CharField(
+        'Профессия',
+        max_length=100,
     )
     tg_name = models.CharField(
         'Никнейм',
@@ -241,6 +245,11 @@ class Feedback(models.Model):
     )
     is_question = models.BooleanField(
         'Это вопрос',
+        default=False,
+        db_index=True,
+    )
+    is_answered = models.BooleanField(
+        'Дан ответ',
         default=False,
         db_index=True,
     )
