@@ -7,6 +7,9 @@ class MeetupManager(models.Manager):
     def current(self):
         return self.filter(date__gte=date.today()).order_by('date').first()
 
+    def actual(self):
+        return self.filter(date__gte=date.today()).order_by('date')
+
     def speakers(self):
         return self.current().members.filter(memberstatus__status=MemberStatus.SPEAKER)
 
