@@ -9,6 +9,9 @@ DEBUG=True
 ALLOWED_HOSTS=
 PROJECT_ROOT=
 
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
 Для создания файла `.env` выполните команду:
 
 ```bash
