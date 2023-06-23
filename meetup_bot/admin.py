@@ -38,7 +38,6 @@ class ReportAdmin(admin.ModelAdmin):
         'meetup',
         'speaker',
         'theme',
-        'is_finished',
     ]
     list_display = [
         'meetup',
@@ -61,6 +60,7 @@ class MemberAdmin(admin.ModelAdmin):
         'tg_id',
         'name',
         'tg_name',
+        'job',
     ]
     inlines = [
         MemberInline
@@ -72,14 +72,13 @@ class FeedbackAdmin(admin.ModelAdmin):
     search_fields = [
         'report',
         'member',
-        'grade',
-        'is_question',
     ]
     list_display = [
         'report',
         'member',
         'grade',
         'is_question',
+        'is_answered',
     ]
 
 

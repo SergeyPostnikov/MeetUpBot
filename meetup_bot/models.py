@@ -87,10 +87,10 @@ class Meetup(models.Model):
                                     tg_id=tg_id,
         )
         save = False
-        if not member.name == name:
+        if not member.name == name and name:
             member.name = name
             save = True
-        if not member.tg_name == tg_name:
+        if not member.tg_name == tg_name and tg_name:
             member.tg_name = tg_name
             save = True
         if save:
@@ -142,9 +142,10 @@ class Member(models.Model):
         'Имя',
         max_length=100,
     )
-    name = models.CharField(
+    job = models.CharField(
         'Профессия',
         max_length=100,
+        blank=True,
     )
     tg_name = models.CharField(
         'Никнейм',
@@ -181,6 +182,17 @@ class Member(models.Model):
             member_status.status = MemberStatus.USER
             member_status.save()  # TODO Отправить уведомление о регистрации если надо
         return member_status.status
+
+    def send_feedback(self, text, report=None, is_question=True):
+        if not report:
+            report = Report.objects.current_report()
+        feedback = Feedback.objects.create(
+            member=self,
+            report=report,
+            text=text,
+            is_question=is_question,
+        )
+        return feedback
 
 
 class ReportManager(models.Manager):
@@ -249,6 +261,22 @@ class Report(models.Model):
         self.is_finished = True
 
 
+class FeedbackManager(models.Manager):
+    def current_question(self):
+        return self.filter(
+                    is_answered=False,
+                    is_question=True,
+                    report=Report.objects.current_report()
+                ).order_by('id').first()
+
+    def actual_questions(self):
+        return self.filter(
+                    is_answered=False,
+                    is_question=True,
+                    report=Report.objects.current_report()
+                ).order_by('id')
+
+
 class Feedback(models.Model):
     ONE = '1'
     TWO = '2'
@@ -290,7 +318,10 @@ class Feedback(models.Model):
         'Оценка',
         max_length=1,
         choices=GRADES,
+        blank=True
     )
+
+    objects = FeedbackManager()
 
     class Meta:
         verbose_name = 'отклик'
@@ -298,3 +329,13 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f'{self.report}({self.member})'
+
+    def set_answered(self):
+        self.is_answered = True
+
+    def set_grade(self, grade):
+        if str(grade) in dict(self.GRADES).keys() and not self.grade:
+            self.grade = str(grade)
+            self.save()
+            return True
+        return False
