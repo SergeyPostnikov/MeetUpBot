@@ -7,6 +7,7 @@ class MeetupManager(models.Manager):
     def current(self):
         return self.filter(date__gte=date.today()).order_by('date').first()
 
+
     def actual(self):
         return self.filter(date__gte=date.today()).order_by('date')
 
@@ -87,12 +88,14 @@ class Meetup(models.Model):
                                     tg_id=tg_id,
         )
         save = False
+
         if not member.name == name and name:
             member.name = name
             save = True
         if not member.tg_name == tg_name and tg_name:
             member.tg_name = tg_name
             save = True
+            
         if save:
             member.save()
 
@@ -105,13 +108,17 @@ class Meetup(models.Model):
 
     def add_report(self, theme, start, end, speaker=None):
         hours, minutes, = start.split(':')
+
         if int(hours) >= 0 and int(minutes) >= 0:
+
             start_time = time(hour=int(hours), minute=int(minutes))
         else:
             start_time = time(hour=12, minute=0)
 
         hours, minutes, = end.split(':')
+
         if int(hours) >= 0 and int(minutes) >= 0:
+
             end_time = time(hour=int(hours), minute=int(minutes))
         else:
             end_time = time(hour=12, minute=0)
@@ -140,12 +147,14 @@ class Member(models.Model):
     )
     name = models.CharField(
         'Имя',
+
         max_length=100,
     )
     job = models.CharField(
         'Профессия',
         max_length=100,
         blank=True,
+
     )
     tg_name = models.CharField(
         'Никнейм',
@@ -175,6 +184,7 @@ class Member(models.Model):
         if not member_status.status == status:
             member_status.status = status
             member_status.save()  # TODO Отправить уведомление о регистрации если надо
+
 
     def get_status(self, meetup):
         (member_status, created) = MemberStatus.objects.get_or_create(meetup=meetup, member=self)
@@ -214,6 +224,7 @@ class ReportManager(models.Manager):
                 ).order_by('start_time')
 
 
+
 class Report(models.Model):
     speaker = models.ForeignKey(
         Member,
@@ -232,18 +243,22 @@ class Report(models.Model):
         max_length=150,
     )
     start_time = models.TimeField(
+
         null=True,
         verbose_name='Дата начала',
     )
     end_time = models.TimeField(
         null=True,
+      
         verbose_name='Дата окончания',
     )
     is_finished = models.BooleanField(
         default=False,
     )
 
+
     objects = ReportManager()
+
 
     class Meta:
         verbose_name = 'доклад'
@@ -256,6 +271,7 @@ class Report(models.Model):
         self.speaker = speaker
         self.save()
         speaker.set_status(self.meetup, MemberStatus.SPEAKER)
+
 
     def set_finished(self):
         self.is_finished = True
@@ -275,6 +291,7 @@ class FeedbackManager(models.Manager):
                     is_question=True,
                     report=Report.objects.current_report()
                 ).order_by('id')
+
 
 
 class Feedback(models.Model):
@@ -309,19 +326,23 @@ class Feedback(models.Model):
         default=False,
         db_index=True,
     )
+
     is_answered = models.BooleanField(
         'Дан ответ',
         default=False,
         db_index=True,
     )
+
     grade = models.CharField(
         'Оценка',
         max_length=1,
         choices=GRADES,
+
         blank=True
     )
 
     objects = FeedbackManager()
+
 
     class Meta:
         verbose_name = 'отклик'
@@ -329,6 +350,7 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f'{self.report}({self.member})'
+
 
     def set_answered(self):
         self.is_answered = True

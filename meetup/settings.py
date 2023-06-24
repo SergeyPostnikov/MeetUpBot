@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
+
+import os
 from pathlib import Path
 from environs import Env
 
@@ -27,7 +29,9 @@ SECRET_KEY = env('SECRET_KEY')
 
 TG_BOT_KEY = env('TG_BOT_KEY')
 PAYMENTS_TOKEN = env('PAYMENTS_TOKEN')
+
 TG_ADMIN_ID = env('TG_ADMIN_ID')
+
 
 DEBUG = env.bool('DEBUG', True)
 
@@ -81,6 +85,7 @@ WSGI_APPLICATION = 'meetup.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 
+
 if DEBUG:
     DATABASES = {
         'default': {
@@ -99,6 +104,7 @@ else:
             'PORT': '',
         }
     }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -134,8 +140,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = 'static'
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+STATIC_ROOT = os.path.join(env.str('PROJECT_ROOT'), 'collected_static')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field

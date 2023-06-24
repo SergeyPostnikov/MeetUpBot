@@ -26,7 +26,9 @@ calls_map = {
     'fill_out_a_form': calls.fill_out_a_form,
     'write_in_private': calls.write_in_private,
     'start_report': calls.start_report,
-    'get_question': calls.get_question
+    'get_question': calls.get_question,
+    'get_registration': calls.get_registration,
+    'enroll_meetup': calls.get_enroll_meetup
 }
 
 calls_id_map = {}
@@ -95,8 +97,13 @@ def handle_buttons(call):
         calls_speaker[call.data](call.message, call.data)
     elif call.data in user['code_users']:
         users = user['code_users']
-        calls_speaker = calls.get_calls(users, calls.get_users)
-        calls_speaker[call.data](call.message, call.data)
+        calls_user = calls.get_calls(users, calls.get_users)
+        calls_user[call.data](call.message, call.data)
+    elif call.data in user['code_meetups']:
+        print('oj')
+        meetups = user['code_meetups']
+        calls_meetup = calls.get_calls(meetups, calls.get_meetup)
+        calls_meetup[call.data](call.message, call.data)
     else:
         calls_map[call.data](call.message, call.data)
 
