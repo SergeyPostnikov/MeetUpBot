@@ -63,12 +63,12 @@ markup_registration = quick_markup({
 
 markup_report_true = quick_markup({
     'Задать вопрос 🤔': {'callback_data': 'ask_question_a_speaker'},
-    'Выбор спикера': {'callback_data': 'choice_speaker'},
+    'Выбор доклада': {'callback_data': 'choice_speaker'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
 
 markup_report_false = quick_markup({
-    'Выбор спикера': {'callback_data': 'choice_speaker'},
+    'Выбор доклада': {'callback_data': 'choice_speaker'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
 
@@ -84,7 +84,7 @@ markup_communicate = quick_markup({
 }, row_width=1)
 
 markup_report = quick_markup({
-    'Прочитать вопросы': {'callback_data': 'get_question'},
+    'Закрыть вопрос': {'callback_data': 'close_question'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
 
@@ -98,6 +98,22 @@ markup_enroll_meetup = quick_markup({
     'Назад': {'callback_data': 'get_registration'},
 }, row_width=1)
 
+markup_enter_meetup = quick_markup({
+    'Войти в меню': {'callback_data': 'enter_meetup'},
+    'Назад': {'callback_data': 'get_registration'},
+}, row_width=1)
+
 markup_start = quick_markup({
     'Посмотреть события': {'callback_data': 'get_registration'},
+}, row_width=1)
+
+markup_start_report = quick_markup({
+    'Завершить доклад': {'callback_data': 'finished_report'},
+    'Вопросы по докладу': {'callback_data': 'questions_asked'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+markup_next_question = quick_markup({
+    'Следующий вопрос': {'callback_data': 'next_questions'},
+    'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)

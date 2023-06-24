@@ -26,12 +26,17 @@ calls_map = {
     'fill_out_a_form': calls.fill_out_a_form,
     'write_in_private': calls.write_in_private,
     'start_report': calls.start_report,
-    'get_question': calls.get_question,
     'get_registration': calls.get_registration,
-    'enroll_meetup': calls.get_enroll_meetup
+    'enroll_meetup': calls.get_enroll_meetup,
+    'enter_meetup': calls.main_menu,
+    'finished_report': calls.finished_report,
+    'questions_asked': calls.get_questions_asked,
+    'close_question': calls.get_set_answered,
+    'next_questions': calls.get_questions_asked,
+
+
 }
 
-calls_id_map = {}
 
 
 class WMonthTelegramCalendar(DetailedTelegramCalendar):
@@ -85,13 +90,7 @@ def handle_buttons(call):
                          f'ввода данных другой команды.\n'
                          f'Сначала завершите ее или отмените')
         return
-    if 'id' in btn_command:
-        parts = btn_command.split(':')
-        key_func = parts[-1]
-        func_name = parts[0]
-        calls_id_map[func_name](call.message, key_func)
-        return
-    elif call.data in user['code_speakers']:
+    if call.data in user['code_speakers']:
         speacers = user['code_speakers']
         calls_speaker = calls.get_calls(speacers, calls.get_speaker)
         calls_speaker[call.data](call.message, call.data)
@@ -100,7 +99,6 @@ def handle_buttons(call):
         calls_user = calls.get_calls(users, calls.get_users)
         calls_user[call.data](call.message, call.data)
     elif call.data in user['code_meetups']:
-        print('oj')
         meetups = user['code_meetups']
         calls_meetup = calls.get_calls(meetups, calls.get_meetup)
         calls_meetup[call.data](call.message, call.data)

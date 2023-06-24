@@ -5,7 +5,7 @@ import db_functions
 from globals import (
 bot, telebot, ACCESS_DUE_TIME, INPUT_DUE_TIME, payload, date_now, date_end, pay_token, markup_main_menu, markup_user,
 markup_speaker, markup_registration, markup_faq, markup_report_true, markup_report_false, markup_form, markup_communicate,
-markup_report, markup_question, markup_enroll_meetup, markup_start)
+markup_report, markup_question, markup_enroll_meetup, markup_start, markup_enter_meetup, markup_start_report, markup_next_question)
 from telebot.util import quick_markup
 from telebot.types import LabeledPrice, ShippingOption
 from telegram_bot_calendar.base import DAY
@@ -25,56 +25,39 @@ def get_calls(var, func):
     calls = {}
     for id in var:
         calls.update({f'{id}': func})
-    print(calls)
     return calls
 
 
 def get_speaker(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     user['sheet'] = 0
-    speakers = db_test.speakers
-    for speaker in speakers:
-        if speaker['name'] == call:
-            text = f'{speaker["name"]}\n---\n' \
-                   f'{speaker["job"]}\n---\n' \
-                   f'{speaker["info"]}\n---\n'
+    reports = db_functions.get_reports()
+    for report in reports:
+        if report.id == int(call):
+            text = f'Доклад {report.theme}\n---\n' \
+                   f'{report.start_time} - {report.end_time}\n---\n' \
+                   f'Ведет доклад - {report.speaker.name}\n---\n'
+            user['report'] = report.id
+            markup = markup_report_true
+            if user['info'] == 1:
+                markup = markup_start_report
             bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                                  text=text, reply_markup=markup_report_true)
+                                  text=text, reply_markup=markup)
 
 
 def get_users(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     user['sheet'] = 0
-    users = db_test.users
+    users = db_functions.get_meetup_users(message.chat.id)
     for us in users:
-        if us['name'] == call:
-            text = f'{us["name"]}\n---\n' \
-                   f'{us["job"]}\n---\n' \
-                   f'{us["info"]}\n---\n'
+        if us.id == int(call):
+            text = f'{us.name}\n---\n' \
+                   f'{us.job}\n---\n' \
+                   f'{us.about}\n---\n'
+            user['text'] = us.tg_name
             bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                   text=text, reply_markup=markup_communicate)
 
-
-def get_meetup(message: telebot.types.Message, call):
-    user = payload[message.chat.id]
-    meetups = db_functions.search_meetup(date_now)
-    for meetup in meetups:
-        if str(meetup.id) == call:
-            text = f'{meetup.theme}\n---\n' \
-                   f'{meetup.date}\n---\n' \
-                   f'{meetup.description}\n---\n'
-            bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                                  text=text, reply_markup=markup_enroll_meetup)
-            user['meetup'] = call
-    user['code_meetups'] = []
-
-
-def get_enroll_meetup(message: telebot.types.Message, call):
-    user = payload[message.chat.id]
-    meetup_theme, meetup_date = db_functions.enroll_meetup(user['meetup'], message.chat.id)
-    text = f'Вы зарегистрировались на {meetup_theme} - {meetup_date}'
-    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                          text=text, reply_markup=markup_start)
 
 
 def get_markup(buttons, row_width=1):
@@ -96,6 +79,7 @@ def start_bot(message: telebot.types.Message):
         'meetup': None,
         'access_due': access_due,  # дата и время актуальности кэшированного статуса
         'form': None,
+        'group': None,
         'name': None,
         'job': None,
         'date': None,
@@ -107,7 +91,7 @@ def start_bot(message: telebot.types.Message):
         'tg_id': message.chat.id,
         'text': None,
         'info': None,
-        'report': False,
+        'report': None,
         'sheet': 0,
         'step_due': None,  # срок актуальности ожидания ввода данных (используем в callback функциях)
     }
@@ -119,12 +103,8 @@ def start_bot(message: telebot.types.Message):
 def get_registration(message: telebot.types.Message, call, step=0):
     user = payload[message.chat.id]
     buttons = {}
-    print(user['tg_name'])
     member = db_functions.search_user(user['tg_name'])
-    print(member)
-    print(step)
     if not member:
-        print('qwerty')
         if step == 0:
             msg = bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                   text=f'Введите имя')
@@ -153,14 +133,35 @@ def get_registration(message: telebot.types.Message, call, step=0):
                               text=f'Выберите мероприятие из списка', reply_markup=markup)
 
 
-    # user_group = 2
-    # if user_group == 1:
-    #     markup = markup_user
-    # elif user_group == 2:
-    #     markup = markup_speaker
-    # msg = bot.send_message(message.chat.id, 'Приветственное сообщение, рассказываю что могу 🥳',
-    #                        reply_markup=markup)
-    # payload[message.chat.id]['msg_id_2'] = msg.id
+def get_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    meetups = db_functions.search_meetup(date_now)
+    for meetup in meetups:
+        if str(meetup.id) == call:
+            text = f'{meetup.theme}\n---\n' \
+                   f'{meetup.date}\n---\n' \
+                   f'{meetup.description}\n---\n'
+            status = db_functions.get_status(message.chat.id, meetup)
+            if not status:
+                markup = markup_enroll_meetup
+            elif status in ['1', '2'] and meetup.date == date_now:
+                markup = markup_enter_meetup
+            else:
+                markup = markup_start
+            bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                                  text=text, reply_markup=markup)
+            user['meetup'] = call
+            user['group'] = status
+    user['code_meetups'] = []
+
+def get_enroll_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    meetup_theme, meetup_date = db_functions.enroll_meetup(user['meetup'], message.chat.id)
+    text = f'Вы зарегистрировались на {meetup_theme} - {meetup_date}'
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                      text=text, reply_markup=markup_start)
+
+
 
 def check_user_in_cache(msg: telebot.types.Message):
     """проверят наличие user в кэше
@@ -183,12 +184,11 @@ def check_user_in_cache(msg: telebot.types.Message):
 def main_menu(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     user['sheet'] = 0
-    user_group = 2
     user['callback_source'] = []
     bot.clear_step_handler(message)
-    if user_group == 1:
+    if user['group'] == '1':
         markup = markup_user
-    elif user_group == 2:
+    elif user['group'] == '2':
         markup = markup_speaker
     bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                           text='Приветственное сообщение, рассказываю что могу 🥳', reply_markup=markup)
@@ -218,22 +218,21 @@ def get_faq_start_report(message: telebot.types.Message, call):
                           text='Описываем как начать/ закончить доклад ', reply_markup=markup_main_menu)
 
 
-
-
 # Communicate========================================================================================
 def get_communicate(message: telebot.types.Message, call):
     user = payload[message.chat.id]
-    if not user['form']:
+    member = db_functions.search_user(user['tg_name'])[0]
+    if not member.job:
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                               text='Анкета не заполнена 😝', reply_markup=markup_form)
     else:
         buttons = {}
-        users = db_test.users
+        users = db_functions.get_meetup_users(message.chat.id)
         for us in users[user['sheet']:user['sheet'] + 2]:
-            name = us['name']
-            user['code_users'].append(name)
-            job = us['job']
-            buttons.update({f'{name} - {job}': {'callback_data': name}})
+            name = us.name
+            user['code_users'].append(str(us.id))
+            job = us.job
+            buttons.update({f'{name} - {job}': {'callback_data': us.id}})
         user['sheet'] += 2
         if user['sheet'] < len(users):
             buttons.update({'Еще анкеты': {'callback_data': 'communicate'}})
@@ -267,33 +266,27 @@ def fill_out_a_form(message: telebot.types.Message, order_id, step=0):
         bot.delete_message(message.chat.id, message.message_id)
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                               text=f'Анкета заполнена 🥳', reply_markup=markup_main_menu)
-        user['form'] = True
+        db_functions.add_user_info(user['tg_name'], user['job'], user['info'])
+        user['info'] = []
     user['callback_source'] = []
 
 def write_in_private(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                          text='Жмякни на @Sergey_Postnikov', reply_markup=markup_main_menu)
+                          text=f'Жмякни на @{user["text"]}', reply_markup=markup_main_menu)
 
 
 #Ask_question======================================================================================
 def ask_question(message: telebot.types.Message, call):
     user = payload[message.chat.id]
-    speakers = db_test.speakers
-    title = None
-    for speaker in speakers:
-        if speaker['report_now']:
-            title = speaker['report_title']
-            name = speaker['name']
-            info = speaker['info']
-    if not title:
+    report = db_functions.get_current_report()
+    if not report:
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                               text='Доклада нет 😞', reply_markup=markup_report_false)
     else:
-        text = f'Идет доклад - {title}\n---\n' \
-               f'Читает доклад -  {name}\n---\n' \
-               f'{info}\n---\n'
-        # user['chat'] = spiker_id
+        text = f'Идет доклад - {report.theme}\n---\n' \
+               f'{report.start_time} - {report.end_time}\n---\n'\
+               f'Читает доклад -  {report.speaker.name}\n---\n'
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                               text=text, reply_markup=markup_report_true)
 
@@ -313,26 +306,27 @@ def ask_question_a_speaker(message: telebot.types.Message, order_id, step=0):
         bot.delete_message(message.chat.id, message.message_id)
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                     text=f'Вопрос отправлен', reply_markup=markup_main_menu)
-        # msg = bot.send_message(message.chat.id, 'Вопрос спикеру 🥳')
+        db_functions.send_feedback(message.chat.id, message.text, user['report'])
+        print(user['report'])
     user['callback_source'] = []
 
 
 def get_speaker_buttons(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     buttons = {}
-    speakers = db_test.speakers
-    for speaker in speakers[user['sheet']:user['sheet']+2]:
-        name = speaker['name']
-        user['code_speakers'].append(name)
-        job = speaker['job']
-        buttons.update({f'{name} - {job}': {'callback_data': name}})
+    reports = db_functions.get_reports()
+    for report in reports[user['sheet']:user['sheet']+2]:
+        name = report.speaker.name
+        user['code_speakers'].append(str(report.id))
+        theme = report.theme
+        buttons.update({f'{name} - {theme}': {'callback_data': report.id}})
     user['sheet'] += 2
-    if user['sheet'] < len(speakers):
-        buttons.update({'Еще спикеры': {'callback_data': 'choice_speaker'}})
+    if user['sheet'] < len(reports):
+        buttons.update({'Еще доклады': {'callback_data': 'choice_speaker'}})
     buttons.update({'Вернуться в меню': {'callback_data': 'main_menu'}})
     markup = get_markup(buttons)
     bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                          text=f'Выберите спикера', reply_markup=markup)
+                          text=f'Выберите доклад', reply_markup=markup)
 
 
 
@@ -394,27 +388,55 @@ def get_registration_pay(message: telebot.types.Message, call):
 
 def start_report(message: telebot.types.Message, call):
     user = payload[message.chat.id]
-    user['report'] = True if not user['report'] else False
-    if user['report']:
+    buttons = {}
+    reports = db_functions.get_reports(message.chat.id)
+    if reports:
+        for report in reports[user['sheet']:user['sheet'] + 2]:
+            name = report.speaker.name
+            user['code_speakers'].append(str(report.id))
+            theme = report.theme
+            buttons.update({f'{name} - {theme}': {'callback_data': report.id}})
+        user['sheet'] += 2
+        if user['sheet'] < len(reports):
+            buttons.update({'Еще доклады': {'callback_data': 'choice_speaker'}})
+        buttons.update({'Вернуться в меню': {'callback_data': 'main_menu'}})
+        markup = get_markup(buttons)
+        user['info'] = 1
+
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                          text=f'Ваш доклад стартует {dt.datetime.now().time()}\n'
-                               f'По окончанию не забудьте кликнуть "закончить доклад"'
-                              , reply_markup=markup_report)
+                              text=f'Выберите доклад', reply_markup=markup)
     else:
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                              text=f'Ваш доклад закончен {dt.datetime.now().time()}'
-                              , reply_markup=markup_report)
-def get_question(message: telebot.types.Message, call):
+                              text=f'Активных докладов нет', reply_markup=markup_main_menu)
+
+
+def finished_report(message: telebot.types.Message, call):
     user = payload[message.chat.id]
-    users = db_test.questions
-    if user['sheet'] < len(users):
-        name = users[user['sheet']]['name']
-        question = users[user['sheet']]['question']
+    db_functions.set_finished(user['report'])
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Доклад закончен\n'
+                              , reply_markup=markup_main_menu)
+
+
+def get_questions_asked(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    question = db_functions.get_current_question(user['report'])
+    user['info'] = question.id
+    if question:
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                              text=f'{name}\n\n'
-                                   f'{question}'
-                              , reply_markup=markup_question)
+                              text=f'Вопрос от {question.member.name}\n'
+                                   f'{question.text}'
+                                  , reply_markup=markup_report)
     else:
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                              text=f'Вопросы закончились', reply_markup=markup_main_menu)
-    user['sheet'] += 1
+                              text=f'Вопросs закончились'
+                              , reply_markup=markup_main_menu)
+
+def get_set_answered(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    db_functions.set_answered(user['info'])
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Вопрос закрыт\n'
+                              , reply_markup=markup_next_question)
+
+
