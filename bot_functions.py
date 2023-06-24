@@ -307,7 +307,6 @@ def ask_question_a_speaker(message: telebot.types.Message, order_id, step=0):
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                     text=f'Вопрос отправлен', reply_markup=markup_main_menu)
         db_functions.send_feedback(message.chat.id, message.text, user['report'])
-        print(user['report'])
     user['callback_source'] = []
 
 
@@ -421,15 +420,16 @@ def finished_report(message: telebot.types.Message, call):
 def get_questions_asked(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     question = db_functions.get_current_question(user['report'])
-    user['info'] = question.id
+
     if question:
+        user['info'] = question.id
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                               text=f'Вопрос от {question.member.name}\n'
                                    f'{question.text}'
                                   , reply_markup=markup_report)
     else:
         bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                              text=f'Вопросs закончились'
+                              text=f'Вопросы закончились'
                               , reply_markup=markup_main_menu)
 
 def get_set_answered(message: telebot.types.Message, call):
