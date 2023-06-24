@@ -92,3 +92,12 @@ markup_question = quick_markup({
     'Еще вопросы': {'callback_data': 'get_question'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
 }, row_width=1)
+
+markup_enroll_meetup = quick_markup({
+    'Записаться': {'callback_data': 'enroll_meetup'},
+    'Назад': {'callback_data': 'get_registration'},
+}, row_width=1)
+
+markup_start = quick_markup({
+    'Посмотреть события': {'callback_data': 'get_registration'},
+}, row_width=1)

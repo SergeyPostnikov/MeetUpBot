@@ -61,6 +61,7 @@ class MemberAdmin(admin.ModelAdmin):
         'name',
         'tg_name',
         'job',
+
     ]
     inlines = [
         MemberInline
@@ -72,6 +73,7 @@ class FeedbackAdmin(admin.ModelAdmin):
     search_fields = [
         'report',
         'member',
+
     ]
     list_display = [
         'report',

@@ -1,10 +1,11 @@
 import datetime as dt
 import db_test
+import db_functions
 
 from globals import (
 bot, telebot, ACCESS_DUE_TIME, INPUT_DUE_TIME, payload, date_now, date_end, pay_token, markup_main_menu, markup_user,
 markup_speaker, markup_registration, markup_faq, markup_report_true, markup_report_false, markup_form, markup_communicate,
-markup_report, markup_question)
+markup_report, markup_question, markup_enroll_meetup, markup_start)
 from telebot.util import quick_markup
 from telebot.types import LabeledPrice, ShippingOption
 from telegram_bot_calendar.base import DAY
@@ -24,6 +25,7 @@ def get_calls(var, func):
     calls = {}
     for id in var:
         calls.update({f'{id}': func})
+    print(calls)
     return calls
 
 
@@ -52,6 +54,29 @@ def get_users(message: telebot.types.Message, call):
             bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                   text=text, reply_markup=markup_communicate)
 
+
+def get_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    meetups = db_functions.search_meetup(date_now)
+    for meetup in meetups:
+        if str(meetup.id) == call:
+            text = f'{meetup.theme}\n---\n' \
+                   f'{meetup.date}\n---\n' \
+                   f'{meetup.description}\n---\n'
+            bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                                  text=text, reply_markup=markup_enroll_meetup)
+            user['meetup'] = call
+    user['code_meetups'] = []
+
+
+def get_enroll_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    meetup_theme, meetup_date = db_functions.enroll_meetup(user['meetup'], message.chat.id)
+    text = f'Вы зарегистрировались на {meetup_theme} - {meetup_date}'
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=text, reply_markup=markup_start)
+
+
 def get_markup(buttons, row_width=1):
     return quick_markup(buttons, row_width=row_width)
 
@@ -59,15 +84,16 @@ def get_markup(buttons, row_width=1):
 # Start========================================================================================
 def start_bot(message: telebot.types.Message):
     tg_name = message.from_user.username
-    msg = bot.send_message(message.chat.id, f'Здравствуйте, {message.from_user.username} 😉')
+    msg = bot.send_message(message.chat.id, f'Здравствуйте, {tg_name} 😉')
     access_due = dt.datetime.now() + dt.timedelta(0, ACCESS_DUE_TIME)
-    user_group = 2
     payload[message.chat.id] = {
         'callback': None,  # current callback button
         'last_msg': [],  # последние отправленные за один раз сообщения (для подчистки кнопок) -- перспектива
         'callback_source': [],  # если задан, колбэк кнопки будут обрабатываться только с этих сообщений
         'code_speakers': [],
         'code_users': [],
+        'code_meetups': [],
+        'meetup': None,
         'access_due': access_due,  # дата и время актуальности кэшированного статуса
         'form': None,
         'name': None,
@@ -86,14 +112,55 @@ def start_bot(message: telebot.types.Message):
         'step_due': None,  # срок актуальности ожидания ввода данных (используем в callback функциях)
     }
     payload[message.chat.id]['msg_id_1'] = msg.id
-    if user_group == 1:
-        markup = markup_user
-    elif user_group == 2:
-        markup = markup_speaker
-    msg = bot.send_message(message.chat.id, 'Приветственное сообщение, рассказываю что могу 🥳',
-                           reply_markup=markup)
+    msg = bot.send_message(message.chat.id, f'Вас приветствует MeetUpBot', reply_markup=markup_start)
     payload[message.chat.id]['msg_id_2'] = msg.id
 
+
+def get_registration(message: telebot.types.Message, call, step=0):
+    user = payload[message.chat.id]
+    buttons = {}
+    print(user['tg_name'])
+    member = db_functions.search_user(user['tg_name'])
+    print(member)
+    print(step)
+    if not member:
+        print('qwerty')
+        if step == 0:
+            msg = bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                                  text=f'Введите имя')
+            user['callback_source'] = [msg.id]
+            bot.register_next_step_handler(message, get_registration, call, 1)
+            user['step_due'] = dt.datetime.now() + dt.timedelta(0, INPUT_DUE_TIME)
+        elif user['step_due'] < dt.datetime.now():
+            bot.send_message(message.chat.id, 'Время ввода данных истекло. Нажмите /start')
+            return
+        elif step == 1:
+            user['name'] = message.text
+            bot.delete_message(message.chat.id, message.message_id)
+            bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                                  text=f'Введенное имя {user["name"]}', reply_markup=markup_start)
+            db_functions.add_new_user(user['name'], message.from_user.username, message.chat.id)
+        user['callback_source'] = []
+    else:
+        meetups = db_functions.search_meetup(date_now)
+        for meetup in meetups:
+            name = meetup.theme
+            date = meetup.date
+            user['code_meetups'].append(str(meetup.id))
+            buttons.update({f'{name} - {date}': {'callback_data': meetup.id}})
+        markup = get_markup(buttons)
+        bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                              text=f'Выберите мероприятие из списка', reply_markup=markup)
+
+
+    # user_group = 2
+    # if user_group == 1:
+    #     markup = markup_user
+    # elif user_group == 2:
+    #     markup = markup_speaker
+    # msg = bot.send_message(message.chat.id, 'Приветственное сообщение, рассказываю что могу 🥳',
+    #                        reply_markup=markup)
+    # payload[message.chat.id]['msg_id_2'] = msg.id
 
 def check_user_in_cache(msg: telebot.types.Message):
     """проверят наличие user в кэше
