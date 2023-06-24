@@ -11,6 +11,9 @@ class MeetupManager(models.Manager):
     def actual(self):
         return self.filter(date__gte=date.today()).order_by('date')
 
+    def users(self):
+        return self.current().members.filter(memberstatus__status=MemberStatus.USER)
+
     def speakers(self):
         return self.current().members.filter(memberstatus__status=MemberStatus.SPEAKER)
 
@@ -154,6 +157,7 @@ class Member(models.Model):
         'Профессия',
         max_length=100,
         blank=True,
+        null=True
 
     )
     tg_name = models.CharField(
@@ -167,6 +171,7 @@ class Member(models.Model):
         'О себе',
         max_length=500,
         blank=True,
+        null=True
     )
 
     class Meta:
@@ -187,11 +192,14 @@ class Member(models.Model):
 
 
     def get_status(self, meetup):
-        (member_status, created) = MemberStatus.objects.get_or_create(meetup=meetup, member=self)
-        if not member_status.status:
-            member_status.status = MemberStatus.USER
-            member_status.save()  # TODO Отправить уведомление о регистрации если надо
-        return member_status.status
+        member_status = MemberStatus.objects.filter(meetup=meetup, member=self)
+        if not member_status:
+            status = None
+        else:
+            status = member_status[0].status
+        #     member_status.status = MemberStatus.USER
+        #     member_status.save()  # TODO Отправить уведомление о регистрации если надо
+        return status
 
     def send_feedback(self, text, report=None, is_question=True):
         if not report:
@@ -278,11 +286,11 @@ class Report(models.Model):
 
 
 class FeedbackManager(models.Manager):
-    def current_question(self):
+    def current_question(self, id):
         return self.filter(
                     is_answered=False,
                     is_question=True,
-                    report=Report.objects.current_report()
+                    report__id=id,
                 ).order_by('id').first()
 
     def actual_questions(self):

@@ -30,8 +30,7 @@ SECRET_KEY = env('SECRET_KEY')
 TG_BOT_KEY = env('TG_BOT_KEY')
 PAYMENTS_TOKEN = env('PAYMENTS_TOKEN')
 
-TG_ADMIN_ID = env('TG_ADMIN_ID')
-
+# TG_ADMIN_ID = env('TG_ADMIN_ID')
 
 DEBUG = env.bool('DEBUG', True)
 
