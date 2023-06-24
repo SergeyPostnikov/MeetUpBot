@@ -19,11 +19,12 @@ pay_token = env('PAYMENTS_TOKEN')
 bot = telebot.TeleBot(token=tg_bot_token)
 
 date_now = date.today()
-date_end = date.today() + timedelta(days=14)
+date_end = date.today() + timedelta(days=28)
 
 payload = {}
 
 # main menu callback buttons
+# user buttons# =======================================================================
 
 markup_user = quick_markup({
     'FAQ': {'callback_data': 'get_faq'},
@@ -53,7 +54,7 @@ markup_main_menu = quick_markup({
 
 markup_recording_time = quick_markup({
     'Выбрать время': {'callback_data': 'recording_time'},
-    'Вернуться в меню': {'callback_data': 'cancel_step'},
+    'Вернуться в меню': {'callback_data': 'start_admin_menu'},
 }, row_width=1)
 
 markup_registration = quick_markup({
@@ -116,4 +117,32 @@ markup_start_report = quick_markup({
 markup_next_question = quick_markup({
     'Следующий вопрос': {'callback_data': 'next_questions'},
     'Вернуться в меню': {'callback_data': 'main_menu'},
+}, row_width=1)
+
+# ADMIN buttons=============================================================================
+
+markup_start_admin_menu = quick_markup({
+    'Поехали': {'callback_data': 'start_admin_menu'},
+}, row_width=1)
+
+
+markup_admin_menu = quick_markup({
+    'Мероприятия': {'callback_data': 'control_meetup'},
+    'Спикеры': {'callback_data': 'control_speaker'},
+    'Создать рассылку': {'callback_data': 'add_message'},
+    'Статистика доната': {'callback_data': 'donat_statistic'},
+}, row_width=1)
+
+
+markup_edit_meetup = quick_markup({
+    'Управление мероприятие': {'callback_data': 'edit_meetup'},
+    'Главное меню': {'callback_data': 'start_admin_menu'}
+}, row_width=1)
+
+
+
+
+markup_del_report = quick_markup({
+    'Удалить доклад': {'callback_data': 'del_report'},
+    'Главное меню': {'callback_data': 'start_admin_menu'}
 }, row_width=1)

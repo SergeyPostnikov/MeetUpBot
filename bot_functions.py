@@ -5,13 +5,15 @@ import db_functions
 from globals import (
 bot, telebot, ACCESS_DUE_TIME, INPUT_DUE_TIME, payload, date_now, date_end, pay_token, markup_main_menu, markup_user,
 markup_speaker, markup_registration, markup_faq, markup_report_true, markup_report_false, markup_form, markup_communicate,
-markup_report, markup_question, markup_enroll_meetup, markup_start, markup_enter_meetup, markup_start_report, markup_next_question)
+markup_report, markup_admin_menu, markup_enroll_meetup, markup_start, markup_enter_meetup, markup_start_report,
+markup_next_question, markup_start_admin_menu, markup_del_report, markup_edit_meetup)
 from telebot.util import quick_markup
 from telebot.types import LabeledPrice, ShippingOption
 from telegram_bot_calendar.base import DAY
 from telegram_bot_calendar.detailed import DetailedTelegramCalendar
 
 
+admin = [933137433, ]
 shipping_options = [
     ShippingOption(id='instant', title='WorldWide Teleporter').add_price(LabeledPrice('Teleporter', 1000)),
     ShippingOption(id='pickup', title='Local pickup').add_price(LabeledPrice('Pickup', 300))]
@@ -28,7 +30,7 @@ def get_calls(var, func):
     return calls
 
 
-def get_speaker(message: telebot.types.Message, call):
+def get_report(message: telebot.types.Message, call):
     user = payload[message.chat.id]
     user['sheet'] = 0
     reports = db_functions.get_reports()
@@ -41,6 +43,8 @@ def get_speaker(message: telebot.types.Message, call):
             markup = markup_report_true
             if user['info'] == 1:
                 markup = markup_start_report
+            elif user['group'] == 'admin':
+                markup = markup_del_report
             bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                   text=text, reply_markup=markup)
 
@@ -76,6 +80,7 @@ def start_bot(message: telebot.types.Message):
         'code_speakers': [],
         'code_users': [],
         'code_meetups': [],
+        'code_reports': [],
         'meetup': None,
         'access_due': access_due,  # дата и время актуальности кэшированного статуса
         'form': None,
@@ -96,7 +101,12 @@ def start_bot(message: telebot.types.Message):
         'step_due': None,  # срок актуальности ожидания ввода данных (используем в callback функциях)
     }
     payload[message.chat.id]['msg_id_1'] = msg.id
-    msg = bot.send_message(message.chat.id, f'Вас приветствует MeetUpBot', reply_markup=markup_start)
+    if message.chat.id in admin:
+        markup = markup_start_admin_menu
+        payload[message.chat.id]['group'] = 'admin'
+    else:
+        markup = markup_start
+    msg = bot.send_message(message.chat.id, f'Вас приветствует MeetUpBot', reply_markup=markup)
     payload[message.chat.id]['msg_id_2'] = msg.id
 
 
@@ -144,14 +154,16 @@ def get_meetup(message: telebot.types.Message, call):
             status = db_functions.get_status(message.chat.id, meetup)
             if not status:
                 markup = markup_enroll_meetup
-            elif status in ['1', '2'] and meetup.date == date_now:
+            elif status in ['1', '2'] and meetup.date == date_now and user['group'] != 'admin':
                 markup = markup_enter_meetup
+                user['group'] = status
+            elif user['group'] == 'admin':
+                markup = markup_edit_meetup
             else:
                 markup = markup_start
             bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                                   text=text, reply_markup=markup)
             user['meetup'] = call
-            user['group'] = status
     user['code_meetups'] = []
 
 def get_enroll_meetup(message: telebot.types.Message, call):
@@ -438,5 +450,93 @@ def get_set_answered(message: telebot.types.Message, call):
     bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
                           text=f'Вопрос закрыт\n'
                               , reply_markup=markup_next_question)
+
+# ADMIN MENU=======================================================================
+# ADMIN MENU=======================================================================
+
+#meetup button=======================================================================
+def start_admin_menu(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    print(user['group'])
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Добро пожаловать в панель администратора, хозяин!', reply_markup=markup_admin_menu)
+
+
+
+def get_control_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    buttons = {}
+    meetups = db_functions.search_meetup(date_now)
+    if meetups:
+        for meetup in meetups:
+            name = meetup.theme
+            date = meetup.date
+            user['code_meetups'].append(str(meetup.id))
+            buttons.update({f'{name} - {date}': {'callback_data': meetup.id}})
+        user['sheet'] += 2
+        if user['sheet'] < len(meetups):
+            buttons.update({'Еще мероприятия': {'callback_data': 'next_meetup'}})
+    buttons.update({'Новое мероприятия': {'callback_data': 'new_meetup'}})
+    buttons.update({'Вернуться в меню': {'callback_data': 'start_admin_menu'}})
+    markup = get_markup(buttons)
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Выберите мероприятие из списка или создайте новое', reply_markup=markup)
+
+def get_new_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    calendar, step = WMonthTelegramCalendar(locale='ru', min_date=date_now, max_date=date_end).build()
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Выберите дату проведения мероприятия', reply_markup=calendar)
+
+
+def get_recording_time(message: telebot.types.Message, call):
+    pass
+
+
+
+
+def edit_meetup(message: telebot.types.Message, call):
+    user = payload[message.chat.id]
+    buttons = {}
+    reports = db_functions.search_reports_for_id(user['meetup'])
+    user['sheet'] = 0
+    if reports:
+        for report in reports:
+            theme = report.theme
+            start_time = report.start_time
+            end_time = report.end_time
+            name = report.speaker.name
+            user['code_reports'].append(str(report.id))
+            buttons.update({f'{theme} {start_time} - {end_time} {name}': {'callback_data': report.id}})
+        user['sheet'] += 2
+        if user['sheet'] < len(reports):
+            buttons.update({'Еще доклады': {'callback_data': 'next_report'}})
+    buttons.update({'Добавить доклад': {'callback_data': 'new_report'}})
+    buttons.update({'Удалить мероприятие': {'callback_data': 'del_meetup'}})
+    buttons.update({'Вернуться в меню': {'callback_data': 'start_admin_menu'}})
+    markup = get_markup(buttons)
+    bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+                          text=f'Выберите доклад из списка или создайте новое', reply_markup=markup)
+
+
+def del_report(message: telebot.types.Message, call):
+    pass
+
+# def get_speaker(message: telebot.types.Message, call):
+#     user = payload[message.chat.id]
+#     user['sheet'] = 0
+#     speakers = db_functions.get_meetup_users(message.chat.id)
+#     for us in users:
+#         if us.id == int(call):
+#             text = f'{us.name}\n---\n' \
+#                    f'{us.job}\n---\n' \
+#                    f'{us.about}\n---\n'
+#             user['text'] = us.tg_name
+#             bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
+#                                   text=text, reply_markup=markup_communicate)
+#
+# def get_control_speaker(message: telebot.types.Message, call):
+#     user = payload[message.chat.id]
+
 
 

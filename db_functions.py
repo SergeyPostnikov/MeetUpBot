@@ -60,17 +60,21 @@ def get_reports(tg_id=None):
         reports = Report.objects.actual_reports().filter(speaker__tg_id=tg_id)
     return reports
 
+
 def set_finished(report_id):
     report = Report.objects.filter(id=report_id)
     report.update(is_finished=True)
 
+
 def get_current_question(report_id):
     return Feedback.objects.current_question(report_id)
 
+
 def set_answered(question_id):
-    print(question_id)
     question = Feedback.objects.filter(id=question_id)
-    print(question)
     question.update(is_answered=True)
 
 
+def search_reports_for_id(meetup_id):
+    reports = Report.objects.actual_reports().filter(meetup__id=meetup_id)
+    return reports

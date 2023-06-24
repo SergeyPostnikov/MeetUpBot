@@ -33,6 +33,13 @@ calls_map = {
     'questions_asked': calls.get_questions_asked,
     'close_question': calls.get_set_answered,
     'next_questions': calls.get_questions_asked,
+    'start_admin_menu': calls.start_admin_menu,
+    'control_meetup': calls.get_control_meetup,
+    'del_report': calls.del_report,
+    'edit_meetup': calls.edit_meetup,
+    'new_meetup': calls.get_new_meetup,
+    'recording_time': calls.get_recording_time,
+
 
 
 }
@@ -92,7 +99,7 @@ def handle_buttons(call):
         return
     if call.data in user['code_speakers']:
         speacers = user['code_speakers']
-        calls_speaker = calls.get_calls(speacers, calls.get_speaker)
+        calls_speaker = calls.get_calls(speacers, calls.get_report)
         calls_speaker[call.data](call.message, call.data)
     elif call.data in user['code_users']:
         users = user['code_users']
@@ -101,6 +108,10 @@ def handle_buttons(call):
     elif call.data in user['code_meetups']:
         meetups = user['code_meetups']
         calls_meetup = calls.get_calls(meetups, calls.get_meetup)
+        calls_meetup[call.data](call.message, call.data)
+    elif call.data in user['code_reports']:
+        meetups = user['code_reports']
+        calls_meetup = calls.get_calls(meetups, calls.get_report)
         calls_meetup[call.data](call.message, call.data)
     else:
         calls_map[call.data](call.message, call.data)
