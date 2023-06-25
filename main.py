@@ -1,9 +1,10 @@
 import datetime as dt
 import bot_functions as calls
+import db_functions
 
 from globals import (
     bot, telebot, date_now,
-    date_end, payload, markup_recording_time
+    date_end, payload, markup_add_meetup, markup_stat_donate
 )
 from bot_functions import shipping_options
 from telegram_bot_calendar import LSTEP
@@ -34,11 +35,23 @@ calls_map = {
     'close_question': calls.get_set_answered,
     'next_questions': calls.get_questions_asked,
     'start_admin_menu': calls.start_admin_menu,
+    'next_meetup': calls.get_control_meetup,
     'control_meetup': calls.get_control_meetup,
     'del_report': calls.del_report,
     'edit_meetup': calls.edit_meetup,
+    'next_report': calls.edit_meetup,
     'new_meetup': calls.get_new_meetup,
     'recording_time': calls.get_recording_time,
+    'add_meetup': calls.add_meetup,
+    'new_report': calls.get_new_report,
+    'next_speaker': calls.get_new_report,
+    'new_speaker': calls.add_new_speaker,
+    'del_meetup': calls.del_meetup,
+    'del_speaker': calls.del_speaker,
+    'send_mail': calls.send_mail,
+    'add_message': calls.prepare_mail,
+    'donat_statistic': calls.select_date_statistic,
+    'statistic': calls.get_statistic
 
 
 
@@ -64,6 +77,7 @@ def get_text(message):
 #для календаря при регистрации ивента
 @bot.callback_query_handler(func=WMonthTelegramCalendar.func())
 def cal(c):
+    user = payload[c.message.chat.id]
     result, key, step = WMonthTelegramCalendar(locale='ru', min_date=date_now, max_date=date_end).process(c.data)
     if not result and key:
         bot.edit_message_text(f"Select {LSTEP[step]}",
@@ -71,10 +85,13 @@ def cal(c):
                               c.message.message_id,
                               reply_markup=key)
     elif result:
+        if user['status'] == 'statistic':
+            markup = markup_stat_donate
+        else:
+            markup = markup_add_meetup
         bot.edit_message_text(f"Вы выбрали {result}",
                               c.message.chat.id,
-                              c.message.message_id, reply_markup=markup_recording_time)
-    user = payload[c.message.chat.id]
+                              c.message.message_id, reply_markup=markup)
     user['date'] = result
 
 
@@ -90,7 +107,6 @@ def handle_buttons(call):
     elif (dt.datetime.now()-dt.timedelta(0, 180)) > dt.datetime.fromtimestamp(call.message.date):
         bot.send_message(call.message.chat.id, 'Срок действия кнопок истек. Нажмите /start и начните заново')
         return
-    btn_command: str = call.data
     if user['callback']:
         bot.send_message(call.message.chat.id,
                          f'Вы находитесь в режиме '
@@ -98,8 +114,8 @@ def handle_buttons(call):
                          f'Сначала завершите ее или отмените')
         return
     if call.data in user['code_speakers']:
-        speacers = user['code_speakers']
-        calls_speaker = calls.get_calls(speacers, calls.get_report)
+        speakers = user['code_speakers']
+        calls_speaker = calls.get_calls(speakers, calls.get_speaker)
         calls_speaker[call.data](call.message, call.data)
     elif call.data in user['code_users']:
         users = user['code_users']
@@ -110,8 +126,12 @@ def handle_buttons(call):
         calls_meetup = calls.get_calls(meetups, calls.get_meetup)
         calls_meetup[call.data](call.message, call.data)
     elif call.data in user['code_reports']:
-        meetups = user['code_reports']
-        calls_meetup = calls.get_calls(meetups, calls.get_report)
+        reports = user['code_reports']
+        calls_meetup = calls.get_calls(reports, calls.get_report)
+        calls_meetup[call.data](call.message, call.data)
+    elif call.data in user['last_msg']:
+        time_reports = user['last_msg']
+        calls_meetup = calls.get_calls(time_reports, calls.add_report)
         calls_meetup[call.data](call.message, call.data)
     else:
         calls_map[call.data](call.message, call.data)
@@ -134,6 +154,8 @@ def checkout(pre_checkout_query):
 
 @bot.message_handler(content_types=['successful_payment'])
 def got_payment(message):
+    user = payload[message.chat.id]
+    db_functions.add_donate(message.chat.id, user['donate'])
     calls.start_bot(message)
 
 
