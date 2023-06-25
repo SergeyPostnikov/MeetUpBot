@@ -59,10 +59,11 @@ def send_feedback(tg_id, text, report_id, is_questions=True):
 
 
 def get_reports(tg_id=None):
+    meetup = Meetup.objects.current()
     if not tg_id:
-        reports = Report.objects.all()
+        reports = Report.objects.all().filter(meetup__id=meetup.id)
     else:
-        reports = Report.objects.all().filter(speaker__tg_id=tg_id)
+        reports = Report.objects.all().filter(speaker__tg_id=tg_id).filter(meetup__id=meetup.id)
     return reports
 
 

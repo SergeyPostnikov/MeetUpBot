@@ -333,7 +333,7 @@ def get_speaker_buttons(message: telebot.types.Message, call):
     reports = db_functions.get_reports()
     for report in reports[user['sheet']:user['sheet']+2]:
         name = report.speaker.name
-        user['code_speakers'].append(str(report.id))
+        user['code_reports'].append(str(report.id))
         theme = report.theme
         buttons.update({f'{name} - {theme}': {'callback_data': report.id}})
     user['sheet'] += 2
@@ -406,7 +406,7 @@ def start_report(message: telebot.types.Message, call):
     if reports:
         for report in reports[user['sheet']:user['sheet'] + 2]:
             name = report.speaker.name
-            user['code_speakers'].append(str(report.id))
+            user['code_reports'].append(str(report.id))
             theme = report.theme
             buttons.update({f'{name} - {theme}': {'callback_data': report.id}})
         user['sheet'] += 2
