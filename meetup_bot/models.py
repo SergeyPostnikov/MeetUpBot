@@ -7,7 +7,6 @@ class MeetupManager(models.Manager):
     def current(self):
         return self.filter(date__gte=date.today()).order_by('date').first()
 
-
     def actual(self):
         return self.filter(date__gte=date.today()).order_by('date')
 
@@ -251,13 +250,11 @@ class Report(models.Model):
         max_length=150,
     )
     start_time = models.TimeField(
-
         null=True,
         verbose_name='Дата начала',
     )
     end_time = models.TimeField(
         null=True,
-      
         verbose_name='Дата окончания',
     )
     is_finished = models.BooleanField(
