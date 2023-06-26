@@ -109,7 +109,10 @@ def start_bot(message: telebot.types.Message):
         payload[message.chat.id]['group'] = 'admin'
     else:
         markup = markup_start
-    msg = bot.send_message(message.chat.id, f'Вас приветствует MeetUpBot', reply_markup=markup)
+    msg = bot.send_message(message.chat.id,
+                            f'Привет, я бот-помощник для проведения митапов.\n'
+                            'Я помогу вам зарегистрироваться на ближайший митап, узнать расписание докладов, задать вопрос спикеру, познакомиться с другими участниками мероприятия.',
+                            reply_markup=markup)
     payload[message.chat.id]['msg_id_2'] = msg.id
 
 
@@ -205,7 +208,9 @@ def main_menu(message: telebot.types.Message, call):
     elif user['group'] == '2':
         markup = markup_speaker
     bot.edit_message_text(chat_id=message.chat.id, message_id=user['msg_id_2'],
-                          text='Привет, я бот-помощник для проведения митапов. Я помогу вам зарегистрироваться на ближайший митап, узнать расписание докладов, задать вопрос спикеру, познакомиться с другими участниками мероприятия.',
+                          text='Для ознакомления с моими возможностями жми "FAQ".\n'
+                          'Для поддержки мероприятия финансово жми "Задонатить организатору".\n'
+                          'Если знаешь как я устроен желаю приятно провести время!',
                           reply_markup=markup)
 
 
