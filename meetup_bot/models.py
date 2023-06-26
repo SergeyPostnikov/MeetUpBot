@@ -172,6 +172,9 @@ class Member(models.Model):
         blank=True,
         null=True
     )
+    is_owner = models.BooleanField(
+        default=False,
+    )
 
     class Meta:
         verbose_name = 'участник'
